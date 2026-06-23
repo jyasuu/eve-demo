@@ -11,7 +11,13 @@ This is a Vercel Eve agent that analyzes stocks using Yahoo Finance data via yfi
 - **Skills** — `stock-analysis.md`, `earnings-analysis.md`, `options-analysis.md`, `taiwan-market-daily/SKILL.md`
 - **Subagent** — `technical_analyst` for delegated chart pattern analysis (also on big-pickle)
 - **Schedule** — daily market briefing weekdays at 6:30 AM (`schedules/market-briefing.md`)
-- **Custom tool** — `portfolio_heatmap.ts` for tracking positions with P&L
+- **Custom tool** — `portfolio_heatmap.ts` for tracking positions with P&L (backed by `defineState` for durable session state, inline in the tool file)
+- **Durable state** — `defineState` from `eve/context` used directly in `portfolio_heatmap.ts` (no separate lib file)
+- **Sandbox** — `agent/sandbox/sandbox.ts` with Python deps (numpy/scipy) installed in bootstrap
+- **Channel** — `agent/channels/slack.ts` wired via Vercel Connect (`slack/stock-agent`)
+- **Hooks** — `agent/hooks/audit.ts` logs portfolio tool calls
+- **Instrumentation** — `agent/instrumentation.ts` with input/output recording
+- **Evals** — `evals/` directory with config and stock-quote/portfolio tests
 
 ## Development
 
@@ -22,7 +28,8 @@ Key files:
 - `agent/agent.ts` — model config (opencode.ai big-pickle, 200K context)
 - `agent/connections/yfinance.ts` — MCP connection config (update URL for production)
 - `agent/subagents/technical_analyst/` — subagent with its own instructions and skills
-- `agent/tools/portfolio_heatmap.ts` — custom portfolio tracking tool
+- `agent/tools/portfolio_heatmap.ts` — custom portfolio tracking tool (uses `defineState` from `eve/context`, inline)
+- `agent/hooks/audit.ts` — logs portfolio_heatmap tool calls
 - `agent/skills/stock-analysis.md`, `earnings-analysis.md`, `options-analysis.md` — loadable skills
 - `agent/schedules/market-briefing.md` — cron-triggered daily briefing
 

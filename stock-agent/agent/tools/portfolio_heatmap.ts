@@ -1,3 +1,4 @@
+import { defineState } from "eve/context";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
@@ -6,6 +7,8 @@ type Position = {
   shares: number;
   avgCost: number;
 };
+
+const portfolio = defineState("stock-agent.portfolio", () => [] as Position[]);
 
 export default defineTool({
   description: "Track a portfolio of stock positions and show a text heatmap of P&L. Use this for portfolio tracking, position monitoring, and gain/loss analysis.",
@@ -16,32 +19,31 @@ export default defineTool({
     avgCost: z.number().optional().describe("Average cost per share"),
   }),
   async execute({ action, symbol, shares, avgCost }) {
-    const store = new PortfolioStore();
-    
     switch (action) {
       case "add": {
         if (!symbol || shares == null || avgCost == null) {
           return { error: "symbol, shares, and avgCost required for add" };
         }
-        store.add({ symbol: symbol.toUpperCase(), shares, avgCost });
+        const pos: Position = { symbol: symbol.toUpperCase(), shares, avgCost };
+        portfolio.update((prev) => [...prev, pos]);
         return { ok: true, message: `Added ${shares} shares of ${symbol.toUpperCase()} @ $${avgCost}` };
       }
       case "remove": {
         if (!symbol) return { error: "symbol required for remove" };
-        store.remove(symbol.toUpperCase());
+        portfolio.update((prev) => prev.filter((p) => p.symbol !== symbol.toUpperCase()));
         return { ok: true, message: `Removed ${symbol.toUpperCase()}` };
       }
       case "clear": {
-        store.clear();
+        portfolio.update(() => []);
         return { ok: true, message: "Portfolio cleared" };
       }
       case "show": {
-        const positions = store.getAll();
+        const positions = portfolio.get();
         if (positions.length === 0) {
           return { portfolio: [], summary: "Portfolio is empty. Use 'add' to add positions." };
         }
         const totalCost = positions.reduce((s, p) => s + p.shares * p.avgCost, 0);
-        const rows = positions.map(p => ({
+        const rows = positions.map((p) => ({
           symbol: p.symbol,
           shares: p.shares,
           avgCost: p.avgCost,
@@ -58,23 +60,3 @@ export default defineTool({
     }
   },
 });
-
-class PortfolioStore {
-  private static storage = new Map<string, Position>();
-
-  getAll(): Position[] {
-    return Array.from(PortfolioStore.storage.values());
-  }
-
-  add(pos: Position): void {
-    PortfolioStore.storage.set(pos.symbol, pos);
-  }
-
-  remove(symbol: string): void {
-    PortfolioStore.storage.delete(symbol);
-  }
-
-  clear(): void {
-    PortfolioStore.storage.clear();
-  }
-}
