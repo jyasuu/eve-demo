@@ -8,7 +8,7 @@ This is a Vercel Eve agent that analyzes stocks using Yahoo Finance data via yfi
 - **Model** (`agent/agent.ts`) — uses `@ai-sdk/openai-compatible` pointing at `https://opencode.ai/zen/v1` with model `big-pickle` (free, no API key). Context window: 200K tokens via `modelContextWindowTokens`
 - **yfinance-mcp-server** — Docker container exposing 25+ Yahoo Finance tools over HTTP/SSE at `localhost:8080/mcp`
 - **Connection** (`agent/connections/yfinance.ts`) — MCP client connection to yfinance, tools prefixed with `connection__yfinance__`
-- **Skills** — `stock-analysis.md`, `earnings-analysis.md`, `options-analysis.md`
+- **Skills** — `stock-analysis.md`, `earnings-analysis.md`, `options-analysis.md`, `taiwan-market-daily/SKILL.md`
 - **Subagent** — `technical_analyst` for delegated chart pattern analysis (also on big-pickle)
 - **Schedule** — daily market briefing weekdays at 6:30 AM (`schedules/market-briefing.md`)
 - **Custom tool** — `portfolio_heatmap.ts` for tracking positions with P&L
