@@ -1,23 +1,24 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import sharp from "sharp";
 
 export default defineTool({
-  description: "Upload an SVG image to a Discord channel using the bot token. Use this to share charts, heatmaps, or any generated SVG visualization with the user.",
+  description: "Upload an SVG chart as a PNG image to a Discord channel. Use this to share charts, heatmaps, or any generated visualization with the user.",
   inputSchema: z.object({
     channelId: z.string().describe("Discord channel ID to upload the image to"),
-    svgContent: z.string().describe("Raw SVG markup string to upload"),
-    filename: z.string().default("chart.svg").describe("Filename for the uploaded SVG (must end in .svg)"),
+    svgContent: z.string().describe("Raw SVG markup string to render and upload"),
     caption: z.string().optional().describe("Optional text caption to accompany the image"),
   }),
-  async execute({ channelId, svgContent, filename, caption }) {
+  async execute({ channelId, svgContent, caption }) {
     const token = process.env.DISCORD_BOT_TOKEN;
     if (!token) {
       return { error: "DISCORD_BOT_TOKEN is not set" };
     }
 
+    const pngBuffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
+
     const form = new FormData();
-    const blob = new Blob([svgContent], { type: "image/svg+xml" });
-    form.append("file", blob, filename);
+    form.append("file", new Blob([pngBuffer], { type: "image/png" }), "chart.png");
     if (caption) {
       form.append("content", caption);
     }
@@ -41,7 +42,6 @@ export default defineTool({
       ok: true,
       messageId: msg.id,
       imageUrl: attachment?.url ?? null,
-      filename: attachment?.filename ?? filename,
     };
   },
 });
