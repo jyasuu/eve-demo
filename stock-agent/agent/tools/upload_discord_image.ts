@@ -1,9 +1,9 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import sharp from "sharp";
+import { renderAsync } from "@resvg/resvg-js";
 
 export default defineTool({
-  description: "Upload an SVG chart as a PNG image to a Discord channel. Use this to share charts, heatmaps, or any generated visualization with the user.",
+  description: "Upload a chart as a PNG image to a Discord channel. Use this to share charts, heatmaps, or any generated visualization with the user.",
   inputSchema: z.object({
     channelId: z.string().describe("Discord channel ID to upload the image to"),
     svgContent: z.string().describe("Raw SVG markup string to render and upload"),
@@ -15,10 +15,18 @@ export default defineTool({
       return { error: "DISCORD_BOT_TOKEN is not set" };
     }
 
-    const pngBuffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const vbMatch = svgContent.match(/viewBox=["']\s*\d+\s+\d+\s+(\d+)\s+(\d+)\s*["']/);
+    const w = vbMatch ? parseInt(vbMatch[1]) : 800;
+    const h = vbMatch ? parseInt(vbMatch[2]) : 600;
+
+    const resvgResult = await renderAsync(svgContent, {
+      fitTo: { mode: "width", value: w },
+      background: "rgba(0, 0, 0, 0)",
+    });
+    const pngBuffer = resvgResult.asPng();
 
     const form = new FormData();
-    form.append("file", new Blob([pngBuffer], { type: "image/png" }), "chart.png");
+    form.append("file", new Blob([new Uint8Array(pngBuffer)], { type: "image/png" }), "chart.png");
     if (caption) {
       form.append("content", caption);
     }
