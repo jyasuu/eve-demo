@@ -2,7 +2,7 @@ import { defineSchedule } from "eve/schedules";
 import discord from "../channels/discord.js";
 
 export default defineSchedule({
-  cron: "* * * * *",
+  cron: "0 0 * * *",
   async run({ receive, waitUntil, appAuth }) {
     waitUntil(
       receive(discord, {
