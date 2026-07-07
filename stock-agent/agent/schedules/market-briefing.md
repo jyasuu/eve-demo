@@ -1,12 +1,50 @@
 ---
-cron: "30 6 * * 1-5"
+cron: "0 */4 * * 1-5"
 ---
 
-Generate a daily market briefing and send it to the Discord channel:
+執行台股每日完整日報，完成後將摘要與圖表發送到 Discord 頻道。
 
-1. Use `connection__yfinance__get_quote` for SPY and QQQ to check market direction
-2. Check futures/pre-market indicators
-3. Note key economic events for the day
-4. Highlight notable pre-market movers
-5. Summarize into a concise briefing with sections: Market Overview, Key Levels, Economic Calendar, Stocks to Watch
-6. Call `send_discord_message` with the formatted briefing as the message content to post it to the Discord trading channel
+先確認今日日期（可用 `date +%Y年%m月%d日`）。
+
+## 模組 A：大盤漲跌原因
+
+1. `web_search` 查詢：`台股大盤 今日漲跌原因 [今日日期]`
+2. 補充搜尋：`費城半導體 美股 今日表現`
+3. 從結果萃取並輸出結構化摘要：
+   - 指數表現（收盤點、漲跌點數、漲跌幅、成交值）
+   - 主要驅動因素（上漲列出 3 ～ 5 個；下跌列出主要壓力）
+   - 外部環境（費半、那斯達克、地緣政治、匯率）
+   - 族群輪動（哪些類股強/弱）
+   - 風險提示
+
+## 模組 B：供應鏈股票識別
+
+1. 從模組 A 萃取的類股資訊確認產業主軸
+2. 拆分供應鏈層次（台灣 → 美國 → 日本 → 韓國），每層列出 top 3 ～ 5 公司
+3. 若涉及伺服器硬體，涵蓋：晶圓代工、先進封裝、ABF 載板、PCB/CCL、被動元件、記憶體、散熱、IC 設計、伺服器組裝
+4. 以分類 Markdown 表格輸出（每類一個表：公司｜代號｜交易所｜受惠邏輯）
+
+## 模組 C：即時報價儀表板
+
+1. 收集模組 B 識別的股票代號（台股加 `.TW` 後綴）
+2. 用 `connection__yfinance__get_quote` 一次取得所有報價
+3. 計算每檔當日漲跌幅
+4. 按供應鏈類別分組呈現
+
+## 模組 D：個股新聞分析
+
+1. 對模組 B 中當日大漲/大跌的標的，呼叫 `connection__yfinance__get_news` 拉取最新新聞
+2. 若新聞為空或過舊（>7 天），補充 `web_search`：`[公司名稱] [今日日期] 新聞`
+3. 每個標的整理：今日催化劑、基本面背景、潛在風險
+
+## 模組 E：大盤走勢 + 相關係數分析
+
+1. 使用 `connection__yfinance__get_historical_data` 下載 `^TWII`，`range=3mo`，繪製折線圖（可用 `upload_discord_image` 上傳 SVG 圖表至 Discord）
+2. 同時下載大盤 + 目標個股歷史數據，用 `bash_tool` 搭配 Python 計算 Pearson 相關係數
+3. 整理相關係數卡片：高（r≥0.7）、中（0.5≤r<0.7）、低（r<0.5）
+
+## 發送 Discord
+
+1. 將模組 A ～ E 的結果整理成一份完整的繁體中文日報摘要
+2. 呼叫 `send_discord_message` 發送文字摘要至 Discord 頻道
+3. 若有產出圖表（如大盤走勢圖），呼叫 `upload_discord_image` 上傳圖表至相同 Discord 頻道
